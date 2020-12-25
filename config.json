@@ -1,8 +1,30 @@
 {
-  "bot_token": "",
-  "logging": {
-    "format": "[%(asctime)s][%(levelname)s] - %(message)s",
-    "level": "info",
-    "file": null
-  }
+    "bot_token": "",
+    "logging": {
+        "format": "[%(asctime)s][%(levelname)s] - %(message)s",
+        "level": "info",
+        "file": null
+    },
+    "sport_types": {
+        "tennis": {
+            "required_players": 2,
+            "maximum_number_players": 4
+        },
+        "padel": {
+            "required_players": 4,
+            "maximum_number_players": 4
+        },
+        "futsal": {
+            "required_players": 10,
+            "maximum_number_players": 12
+        },
+        "basket": {
+            "required_players": 4,
+            "maximum_number_players": 10
+        },
+        "magic": {
+            "required_players": 2,
+            "maximum_number_players": 4
+        }
+    }
 }
