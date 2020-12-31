@@ -58,8 +58,8 @@ def find_match(match_id):
         if values[0] == match_id:
             return db_as_list, values, index
 
-    logger.error('We cannot find your match in our db')
-    raise KeyError(f'{match_id} not found')
+    logger.error(f'{match_id} not found')
+    raise KeyError()
 
 
 def overwrite_line(db_as_list, target_line, target_index):
@@ -70,14 +70,17 @@ def overwrite_line(db_as_list, target_line, target_index):
     with open('matches_db.csv', 'w') as db:
         writer = csv.writer(db)
         writer.writerows(db_as_list)
-        logger.info(f'database successfully updated')
+        logger.info('database successfully updated')
 
-# TODO:
-    # def check_players_number(match_id):
-        #'''Controls whether a satisfying number of players is reached or not.'''
 
-        # _, match_line, __ = find_match(match_id)
-        # data = parse_line(match_line)
+def check_players_number(match_id, required_number):
+    '''Returns the number of missing players'''
+
+    _, match_line, __ = find_match(match_id)
+    number_of_players = len(match_line[5:])
+    missing_players = required_number - number_of_players
+    return missing_players
+
 
 def store_in_db(chat_id, user_id, sport, date_time, duration):
     '''Stores new matches in the database.'''

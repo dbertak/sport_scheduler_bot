@@ -4,15 +4,21 @@ from datetime import datetime, timedelta
 import logging
 
 from config import CONFIG
-
 from db_manager import (
     store_in_db,
     parse_message,
     parse_line,
     find_match,
-    overwrite_line
+    overwrite_line,
+    check_players_number
 )
-
+from exceptions import (
+    DatabaseNotFoundError,
+    MatchNotFoundError,
+    SportKeyError,
+    DateTimeValueError,
+    EventInThePastError
+)
 
 SPORT_TYPES = CONFIG['sport_types']
 
@@ -48,42 +54,28 @@ def show_sports(update, context):
 
 
 def new_match(update, context):
-    match_raw_data = update.message.text
+    text_message = update.message.text
     chat_id = update.effective_chat.id
     user_id = update.message.from_user.id
-    parsed_data = parse_message(match_raw_data)
+    parsed_data = parse_message(text_message)
 
     assert len(parsed_data) == 3, 'Wrong input size'
     sport, date_time, duration = parsed_data
 
     if sport not in SPORT_TYPES.keys():
-        context.bot.send_message(
-            chat_id=chat_id,
-            text=f'Unrecognized sport field {sport}, choose an available sport',
-            parse_mode=ParseMode.MARKDOWN
-        )
-        raise ValueError(f'Sport {sport} not implemented yet')
+        error_message = f'Sport {sport} not implemented yet'
+        raise SportKeyError(context, chat_id, sport, error_message)
 
     try:
         event_date_time = datetime.strptime(date_time, "%d/%m/%Y %H:%M")
 
     except ValueError:
-        context.bot.send_message(
-            chat_id=chat_id,
-            text='Wrong date and time format, please use dd/mm/yyyy hh:mm',
-            parse_mode=ParseMode.MARKDOWN
-        )
-        raise ValueError('Wrong date time format')
+        raise DateTimeValueError(context, chat_id)
 
     present = datetime.now()
 
     if event_date_time < present:
-        context.bot.send_message(
-            chat_id=chat_id,
-            text='Event cannot be in the past',
-            parse_mode=ParseMode.MARKDOWN
-        )
-        raise ValueError('Event cannot be in the past')
+        raise EventInThePastError(context, chat_id)
 
     match_id = store_in_db(chat_id, user_id, sport, date_time, duration)
     context.bot.send_message(
@@ -93,10 +85,10 @@ def new_match(update, context):
 
 
 def update_event(update, context):
-    match_raw_data = update.message.text
+    text_message = update.message.text
     chat_id = update.effective_chat.id
     user_id = update.message.from_user.id
-    parsed_data = parse_message(match_raw_data)
+    parsed_data = parse_message(text_message)
 
     assert len(parsed_data) == 3, 'Wrong input size'
     match_id, field, new_entry = parsed_data
@@ -105,30 +97,20 @@ def update_event(update, context):
         db_as_list, target_line, target_index = find_match(match_id)
 
     except FileNotFoundError:
-        context.bot.send_message(
-            chat_id=chat_id,
-            text=f'Database is empty, try to create a new match first with /newmatch'
-        )
-        raise FileNotFoundError('Database not found')
+        raise DatabaseNotFoundError(context, chat_id)
 
     except KeyError:
-        context.bot.send_message(
-            chat_id=chat_id,
-            text=f'Your match is not in our database, check for possible typos or create a new match with /newmatch'
-        )
-        raise KeyError(f'Match {match_id} not found')
+        error_message = f'Match {match_id} not found'
+        raise MatchNotFoundError(context, chat_id, error_message)
 
     if str(user_id) not in target_line:
         raise PermissionError('User not allowed to modify this match')
 
     if field == 'sport':
+
         if new_entry not in SPORT_TYPES.keys():
-            context.bot.send_message(
-                chat_id=chat_id,
-                text=f'Unrecognized sport field {new_entry}, choose an available sport',
-                parse_mode=ParseMode.MARKDOWN
-            )
-            raise ValueError(f'Sport {new_entry} not implemented yet')
+            error_message = f'Sport {sport} not implemented yet'
+            raise SportKeyError(context, chat_id, sport, error_message)
 
         target_line[2] = new_entry
 
@@ -138,22 +120,12 @@ def update_event(update, context):
             event_date_time = datetime.strptime(new_entry, "%d/%m/%Y %H:%M")
 
         except ValueError:
-            context.bot.send_message(
-                chat_id=chat_id,
-                text='Wrong date and time format, please use dd/mm/yyyy hh:mm',
-                parse_mode=ParseMode.MARKDOWN
-                )
-            raise ValueError('Wrong date time format')
+            raise DateTimeValueError(context, chat_id)
 
         present = datetime.now()
 
         if event_date_time < present:
-            context.bot.send_message(
-                chat_id=chat_id,
-                text='Event cannot be in the past',
-                parse_mode=ParseMode.MARKDOWN
-                )
-            raise ValueError('Event cannot be in the past')
+            raise EventInThePastError(context, chat_id)
 
         target_line[3] = new_entry
 
@@ -180,27 +152,20 @@ def update_event(update, context):
 
 
 def join_event(update, context):
-    match_raw_data = update.message.text
+    text_message = update.message.text
     chat_id = update.effective_chat.id
     user_id = update.message.from_user.id
-    match_id = parse_message(match_raw_data)[0]
+    match_id = parse_message(text_message)[0]
 
     try:
         db, match_line, index = find_match(match_id)
 
     except FileNotFoundError:
-        context.bot.send_message(
-            chat_id=chat_id,
-            text=f'Database is empty, try to create a new match first with /newmatch'
-        )
-        raise FileNotFoundError('Database not found')
+        raise DatabaseNotFoundError(context, chat_id)
 
     except KeyError:
-        context.bot.send_message(
-            chat_id=chat_id,
-            text='Your match is not in our database, check for possible typos or create a new match with /newmatch'
-        )
-        raise KeyError(f'Match {match_id} not found')
+        error_message = f'Match {match_id} not found'
+        raise MatchNotFoundError(context, chat_id, error_message)
 
     if str(user_id) in match_line:
         context.bot.send_message(
@@ -221,27 +186,20 @@ def join_event(update, context):
 def leave_event(update, context):
     '''Allows the user the leave an event'''
 
-    match_raw_data = update.message.text
+    text_message = update.message.text
     chat_id = update.effective_chat.id
     user_id = update.message.from_user.id
-    match_id = parse_message(match_raw_data)[0]
+    match_id = parse_message(text_message)[0]
 
     try:
         db, match_line, index = find_match(match_id)
 
     except FileNotFoundError:
-        context.bot.send_message(
-            chat_id=chat_id,
-            text=f'Database is empty, try to create a new match first with /newmatch'
-        )
-        raise FileNotFoundError('Database not found')
+        raise DatabaseNotFoundError(context, chat_id)
 
     except KeyError:
-        context.bot.send_message(
-            chat_id=chat_id,
-            text='Your match is not in our database, check for possible typos or create a new match with /newmatch'
-        )
-        raise KeyError(f'Match {match_id} not found')
+        error_message = f'Match {match_id} not found'
+        raise MatchNotFoundError(context, chat_id, error_message)
 
     if str(user_id) in match_line:
         match_line.remove(str(user_id))
