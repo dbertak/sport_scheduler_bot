@@ -25,6 +25,14 @@
         "magic": {
             "required_players": 2,
             "maximum_number_players": 2
+        },
+        "beach volley": {
+            "required_players": 4,
+            "maximum_number_players": 8
+        },
+        "smite": {
+            "required_players": 1,
+            "maximum_number_players": 5 
         }
     }
 }
