@@ -39,7 +39,7 @@ class DateTimeValueError(ValueError):
 
 
 class EventInThePastError(ValueError):
-    '''To be raised when user schedules an event in the past'''
+    '''To be raised when user schedules an event in the past.'''
 
     def __init__(self, context, chat_id, message='Event in the past'):
         self.message = message
@@ -49,7 +49,7 @@ class EventInThePastError(ValueError):
 
 
 class UnauthorizedUserError(PermissionError):
-    '''To be raised when user schedules an event in the past'''
+    '''To be raised when user tries to access an event without permission.'''
 
     def __init__(self, context, chat_id, match_id, message='User not allowed to modify this match'):
         self.message = message
