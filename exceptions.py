@@ -37,6 +37,7 @@ class DateTimeValueError(ValueError):
         context.bot.send_message(chat_id, self.text)
         super().__init__(self.message)
 
+
 class EventInThePastError(ValueError):
     '''To be raised when user schedules an event in the past'''
 
@@ -45,3 +46,14 @@ class EventInThePastError(ValueError):
         self.text = 'Event cannot be in the past'
         context.bot.send_message(chat_id, self.text)
         super().__init__(self.message)
+
+
+class UnauthorizedUserError(PermissionError):
+    '''To be raised when user schedules an event in the past'''
+
+    def __init__(self, context, chat_id, match_id, message='User not allowed to modify this match'):
+        self.message = message
+        self.text = f'User not allowed to modify match {match_id}'
+        context.bot.send_message(chat_id, self.text)
+        super().__init__(self.message)
+

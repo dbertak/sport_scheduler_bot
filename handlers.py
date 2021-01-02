@@ -17,11 +17,12 @@ from exceptions import (
     MatchNotFoundError,
     SportKeyError,
     DateTimeValueError,
-    EventInThePastError
+    EventInThePastError,
+    UnauthorizedUserError
 )
 
 SPORT_TYPES = CONFIG['sport_types']
-
+FIRST_PLAYER_POSITION = 5
 logger = logging.getLogger(__name__)
 
 
@@ -37,8 +38,14 @@ def show_help(update, context):
     context.bot.send_message(
         chat_id=update.effective_chat.id,
         text='*First of all, add this bot to your group chat*\n'
-              # more instructions
-              'GitHub: [SportSchedulerBot](https://github.com/dbertak/sport_scheduler_bot)',
+             'Schedule a new match with /newmatch command (prints match id)\n'
+             'Other commands:\n'
+             '/update, allows to modify type of sport, date/time or match duration.\n'
+             '/showsports, prints all the available sports.\n'
+             '/join, to join matches\n'
+             '/leave, to abandon matches\n'
+             '/remove, to cancel a match\n'
+             'GitHub: [SportSchedulerBot](https://github.com/dbertak/sport_scheduler_bot)',
         parse_mode=ParseMode.MARKDOWN
         )
 
@@ -101,10 +108,10 @@ def update_event(update, context):
 
     except KeyError:
         error_message = f'Match {match_id} not found'
-        raise MatchNotFoundError(context, chat_id, error_message)
+        raise MatchNotFoundError(context, chat_id, match_id, error_message)
 
-    if str(user_id) not in target_line:
-        raise PermissionError('User not allowed to modify this match')
+    if str(user_id) not in target_line[FIRST_PLAYER_POSITION:]:
+        raise UnauthorizedUserError(context, chat_id, match_id)
 
     if field == 'sport':
 
@@ -142,7 +149,7 @@ def update_event(update, context):
         )
         raise ValueError(f'Unrecognized field {field}')
 
-    overwrite_line(db_as_list, target_line, target_index)
+    overwrite_line(db_as_list, target_index, target_line)
 
     context.bot.send_message(
         chat_id=chat_id,
@@ -165,9 +172,9 @@ def join_event(update, context):
 
     except KeyError:
         error_message = f'Match {match_id} not found'
-        raise MatchNotFoundError(context, chat_id, error_message)
+        raise MatchNotFoundError(context, chat_id, match_id, error_message)
 
-    if str(user_id) in match_line:
+    if str(user_id) in match_line[FIRST_PLAYER_POSITION:]:
         context.bot.send_message(
             chat_id=chat_id,
             text='User already joined the match'
@@ -176,7 +183,7 @@ def join_event(update, context):
 
     else:
         match_line.append(user_id)
-        overwrite_line(db, match_line, index)
+        overwrite_line(db, index, match_line)
         context.bot.send_message(
             chat_id=chat_id,
             text=f'User has successfully joined match {match_id}'
@@ -199,11 +206,11 @@ def leave_event(update, context):
 
     except KeyError:
         error_message = f'Match {match_id} not found'
-        raise MatchNotFoundError(context, chat_id, error_message)
+        raise MatchNotFoundError(context, chat_id, match_id, error_message)
 
-    if str(user_id) in match_line:
+    if str(user_id) in match_line[FIRST_PLAYER_POSITION:]:
         match_line.remove(str(user_id))
-        overwrite_line(db, match_line, index)
+        overwrite_line(db, index, match_line)
         context.bot.send_message(
             chat_id=chat_id,
             text='User removed from the match'
@@ -217,3 +224,34 @@ def leave_event(update, context):
                  ' check for typos in the match ID',
         )
         raise KeyError('User not found')
+
+
+def delete_event(update, context):
+    '''Allows user to remove an event.'''
+
+    text_message = update.message.text
+    chat_id = update.effective_chat.id
+    user_id = update.message.from_user.id
+    match_id = parse_message(text_message)[0]
+
+    try:
+        db, match_line, index = find_match(match_id)
+
+    except FileNotFoundError:
+        raise DatabaseNotFoundError(context, chat_id)
+
+    except KeyError:
+        error_message = f'Match {match_id} not found'
+        raise MatchNotFoundError(context, chat_id, match_id, error_message)
+
+    if str(user_id) in match_line[FIRST_PLAYER_POSITION:]:
+        overwrite_line(db, index)
+        context.bot.send_message(
+            chat_id=chat_id,
+            text=f'Match {match_id} removed from database'
+        )
+        logger.info('Match removed from database')
+
+    else:
+        raise UnauthorizedUserError(context, chat_id, match_id)
+ 

@@ -44,8 +44,10 @@ def find_match(match_id):
     '''Searches the database for the given match'''
 
     try:
+
         with open('matches_db.csv', 'r') as db:
             db_as_text = db.read()
+
     except FileNotFoundError:
         logger.error('Database not instantiated yet, impossible to update')
         raise FileNotFoundError
@@ -62,10 +64,14 @@ def find_match(match_id):
     raise KeyError()
 
 
-def overwrite_line(db_as_list, target_line, target_index):
+def overwrite_line(db_as_list, target_index, updated_line=None):
     '''Overwrites a line of the database with the given new one'''
 
-    db_as_list[target_index] = target_line
+    if updated_line:
+        db_as_list[target_index] = updated_line
+
+    else:  # when updated line is not specified it just deletes the line
+        db_as_list.pop(target_index)
 
     with open('matches_db.csv', 'w') as db:
         writer = csv.writer(db)

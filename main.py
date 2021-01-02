@@ -8,7 +8,8 @@ from handlers import (
     update_event,
     join_event,
     leave_event,
-    show_sports
+    show_sports,
+    delete_event
 )
 
 import logging
@@ -29,6 +30,7 @@ def main():
     dispatcher.add_handler(CommandHandler('update', update_event))
     dispatcher.add_handler(CommandHandler('join', join_event))
     dispatcher.add_handler(CommandHandler('leave', leave_event))
+    dispatcher.add_handler(CommandHandler('remove', delete_event))
     # possibly other commands lol
 
     logger.info('Bot started')
