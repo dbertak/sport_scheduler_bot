@@ -57,3 +57,13 @@ class UnauthorizedUserError(PermissionError):
         context.bot.send_message(chat_id, self.text)
         super().__init__(self.message)
 
+
+class InputSizeError(ValueError):
+    '''To be raised when user types too many fields in a command.'''
+
+    def __init__(self, context, chat_id, fields_number, expected_number, message='Too many values to unpack'):
+        self.message = message
+        self.text = f'Unexepected number of fields {fields_number} for this command, correct number: {expected_number}'
+        context.bot.send_message(chat_id, self.text)
+        super().__init__(self.message)
+

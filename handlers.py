@@ -18,6 +18,7 @@ from exceptions import (
     SportKeyError,
     DateTimeValueError,
     EventInThePastError,
+    InputSizeError,
     UnauthorizedUserError
 )
 
@@ -65,7 +66,9 @@ def new_match(update, context):
     text_message, chat_id, user_id = get_message_info(update)
     parsed_data = parse_message(text_message)
 
-    assert len(parsed_data) == 3, 'Wrong input size'
+    if len(parsed_data) != 3: 
+        raise InputSizeError(context, chat_id, len(parsed_data), 3)
+
     sport, date_time, duration = parsed_data
 
     if sport not in SPORT_TYPES.keys():
@@ -94,7 +97,9 @@ def update_event(update, context):
     text_message, chat_id, user_id = get_message_info(update)
     parsed_data = parse_message(text_message)
 
-    assert len(parsed_data) == 3, 'Wrong input size'
+    if len(parsed_data) != 3: 
+        raise InputSizeError(context, chat_id, len(parsed_data), 3)
+
     match_id, field, new_entry = parsed_data
 
     db_as_list, target_line, target_index = get_match_in_db(context, match_id, chat_id, user_id)
@@ -149,8 +154,12 @@ def update_event(update, context):
 
 def join_event(update, context):
     text_message, chat_id, user_id = get_message_info(update)
-    match_id = parse_message(text_message)[0]
+    parsed_data = parse_message(text_message)
 
+    if len(parsed_data) != 1: 
+        raise InputSizeError(context, chat_id, len(parsed_data), 1)
+
+    match_id = parsed_data[0]
     db, match_line, index = get_match_in_db(context, match_id, chat_id, user_id)
 
     if str(user_id) in match_line[FIRST_PLAYER_POSITION:]:
@@ -173,8 +182,12 @@ def leave_event(update, context):
     '''Allows the user the leave an event'''
 
     text_message, chat_id, user_id = get_message_info(update)
-    match_id = parse_message(text_message)[0]
+    parsed_data = parse_message(text_message)
 
+    if len(parsed_data) != 1: 
+        raise InputSizeError(context, chat_id, len(parsed_data), 1)
+
+    match_id = parsed_data[0]
     db, match_line, index = get_match_in_db(context, match_id, chat_id, user_id)
 
     if str(user_id) in match_line[FIRST_PLAYER_POSITION:]:
@@ -199,8 +212,12 @@ def delete_event(update, context):
     '''Allows user to remove an event.'''
 
     text_message, chat_id, user_id = get_message_info(update)
-    match_id = parse_message(text_message)[0]
+    parsed_data = parse_message(text_message)
 
+    if len(parsed_data) != 1: 
+        raise InputSizeError(context, chat_id, len(parsed_data), 1)
+
+    match_id = parsed_data[0]
     db, match_line, index = get_match_in_db(context, match_id, chat_id, user_id)
 
     if str(user_id) in match_line[FIRST_PLAYER_POSITION:]:
