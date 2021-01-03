@@ -4,17 +4,17 @@ import random
 import re
 import string
 
-
 logger = logging.getLogger(__name__)
 
 
 def parse_line(line):
-    '''Parses a comma separated line'''
+    '''Parses a comma separated line.'''
 
     data = line.split(',')
     parsed_data = []
 
     for datum in data:
+
         stripped_datum = datum.strip()
         parsed_data.append(stripped_datum)
 
@@ -22,7 +22,7 @@ def parse_line(line):
 
 
 def parse_message(text):
-    '''Gets data from telegram message'''
+    '''Gets data from telegram message.'''
 
     command_match = re.match(r'^[\/a-z]+', text)
 

@@ -4,17 +4,17 @@ from datetime import datetime, timedelta
 import logging
 
 from config import CONFIG
+from utils import (
+    get_message_info,
+    get_match_in_db
+)
 from db_manager import (
     store_in_db,
     parse_message,
-    parse_line,
-    find_match,
     overwrite_line,
     check_players_number
 )
 from exceptions import (
-    DatabaseNotFoundError,
-    MatchNotFoundError,
     SportKeyError,
     DateTimeValueError,
     EventInThePastError,
@@ -23,6 +23,7 @@ from exceptions import (
 
 SPORT_TYPES = CONFIG['sport_types']
 FIRST_PLAYER_POSITION = 5
+
 logger = logging.getLogger(__name__)
 
 
@@ -61,9 +62,7 @@ def show_sports(update, context):
 
 
 def new_match(update, context):
-    text_message = update.message.text
-    chat_id = update.effective_chat.id
-    user_id = update.message.from_user.id
+    text_message, chat_id, user_id = get_message_info(update)
     parsed_data = parse_message(text_message)
 
     assert len(parsed_data) == 3, 'Wrong input size'
@@ -92,23 +91,13 @@ def new_match(update, context):
 
 
 def update_event(update, context):
-    text_message = update.message.text
-    chat_id = update.effective_chat.id
-    user_id = update.message.from_user.id
+    text_message, chat_id, user_id = get_message_info(update)
     parsed_data = parse_message(text_message)
 
     assert len(parsed_data) == 3, 'Wrong input size'
     match_id, field, new_entry = parsed_data
 
-    try:
-        db_as_list, target_line, target_index = find_match(match_id)
-
-    except FileNotFoundError:
-        raise DatabaseNotFoundError(context, chat_id)
-
-    except KeyError:
-        error_message = f'Match {match_id} not found'
-        raise MatchNotFoundError(context, chat_id, match_id, error_message)
+    db_as_list, target_line, target_index = get_match_in_db(context, match_id, chat_id, user_id)
 
     if str(user_id) not in target_line[FIRST_PLAYER_POSITION:]:
         raise UnauthorizedUserError(context, chat_id, match_id)
@@ -116,8 +105,8 @@ def update_event(update, context):
     if field == 'sport':
 
         if new_entry not in SPORT_TYPES.keys():
-            error_message = f'Sport {sport} not implemented yet'
-            raise SportKeyError(context, chat_id, sport, error_message)
+            error_message = f'Sport {new_entry} not implemented yet'
+            raise SportKeyError(context, chat_id, new_entry, error_message)
 
         target_line[2] = new_entry
 
@@ -159,20 +148,10 @@ def update_event(update, context):
 
 
 def join_event(update, context):
-    text_message = update.message.text
-    chat_id = update.effective_chat.id
-    user_id = update.message.from_user.id
+    text_message, chat_id, user_id = get_message_info(update)
     match_id = parse_message(text_message)[0]
 
-    try:
-        db, match_line, index = find_match(match_id)
-
-    except FileNotFoundError:
-        raise DatabaseNotFoundError(context, chat_id)
-
-    except KeyError:
-        error_message = f'Match {match_id} not found'
-        raise MatchNotFoundError(context, chat_id, match_id, error_message)
+    db, match_line, index = get_match_in_db(context, match_id, chat_id, user_id)
 
     if str(user_id) in match_line[FIRST_PLAYER_POSITION:]:
         context.bot.send_message(
@@ -193,20 +172,10 @@ def join_event(update, context):
 def leave_event(update, context):
     '''Allows the user the leave an event'''
 
-    text_message = update.message.text
-    chat_id = update.effective_chat.id
-    user_id = update.message.from_user.id
+    text_message, chat_id, user_id = get_message_info(update)
     match_id = parse_message(text_message)[0]
 
-    try:
-        db, match_line, index = find_match(match_id)
-
-    except FileNotFoundError:
-        raise DatabaseNotFoundError(context, chat_id)
-
-    except KeyError:
-        error_message = f'Match {match_id} not found'
-        raise MatchNotFoundError(context, chat_id, match_id, error_message)
+    db, match_line, index = get_match_in_db(context, match_id, chat_id, user_id)
 
     if str(user_id) in match_line[FIRST_PLAYER_POSITION:]:
         match_line.remove(str(user_id))
@@ -229,20 +198,10 @@ def leave_event(update, context):
 def delete_event(update, context):
     '''Allows user to remove an event.'''
 
-    text_message = update.message.text
-    chat_id = update.effective_chat.id
-    user_id = update.message.from_user.id
+    text_message, chat_id, user_id = get_message_info(update)
     match_id = parse_message(text_message)[0]
 
-    try:
-        db, match_line, index = find_match(match_id)
-
-    except FileNotFoundError:
-        raise DatabaseNotFoundError(context, chat_id)
-
-    except KeyError:
-        error_message = f'Match {match_id} not found'
-        raise MatchNotFoundError(context, chat_id, match_id, error_message)
+    db, match_line, index = get_match_in_db(context, match_id, chat_id, user_id)
 
     if str(user_id) in match_line[FIRST_PLAYER_POSITION:]:
         overwrite_line(db, index)
