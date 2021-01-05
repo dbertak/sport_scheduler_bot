@@ -1,6 +1,6 @@
 from telegram import ParseMode
-from datetime import datetime, timedelta
 
+import datetime as dt
 import logging
 
 from utils import (
@@ -11,18 +11,17 @@ from db_manager import (
     FIRST_PLAYER_POSITION,   
     SPORT_TYPES,
     store_in_db,
-    parse_message,
     overwrite_line,
 #   get_missing_players_number
 )
 from exceptions import (
     SportKeyError,
-    DateTimeValueError,
+    DateValueError,
+    TimeValueError,
     EventInThePastError,
     InputSizeError,
     UnauthorizedUserError
 )
-
 
 logger = logging.getLogger(__name__)
 
@@ -62,30 +61,43 @@ def show_sports(update, context):
 
 
 def new_match(update, context):
-    text_message, chat_id, user_id = get_message_info(update)
-    parsed_data = parse_message(text_message)
+    chat_id, user_id = get_message_info(update)
+    parsed_data = context.args 
 
-    if len(parsed_data) != 3: 
-        raise InputSizeError(context, chat_id, len(parsed_data), 3)
+    if len(parsed_data) != 4: 
+        raise InputSizeError(context, chat_id, len(parsed_data), 4)
 
-    sport, date_time, duration = parsed_data
+    sport, date, time, duration = parsed_data
 
     if sport not in SPORT_TYPES.keys():
         error_message = f'Sport {sport} not implemented yet'
         raise SportKeyError(context, chat_id, sport, error_message)
 
     try:
-        event_date_time = datetime.strptime(date_time, "%d/%m/%Y %H:%M")
+        event_date = dt.datetime.strptime(date, "%d/%m/%Y").date()
 
     except ValueError:
-        raise DateTimeValueError(context, chat_id)
+        raise DateValueError(context, chat_id)
 
-    present = datetime.now()
+    try:
+        event_time = dt.datetime.strptime(time, "%H:%M").time()
+
+    except ValueError:
+        raise TimeValueError(context, chat_id)
+
+    try:
+        event_duration =dt.datetime.strptime(duration, "%H:%M").time()
+
+    except ValueError:
+        raise TimeValueError(context, chat_id)
+
+    present = dt.datetime.now()
+    event_date_time = dt.datetime.combine(event_date, event_time)
 
     if event_date_time < present:
         raise EventInThePastError(context, chat_id)
 
-    match_id = store_in_db(chat_id, user_id, sport, date_time, duration)
+    match_id = store_in_db(chat_id, user_id, sport, date, time, duration)
     context.bot.send_message(
         chat_id=chat_id,
         text=f'Match {match_id} has been successfully created,\n'
@@ -94,8 +106,8 @@ def new_match(update, context):
 
 
 def update_event(update, context):
-    text_message, chat_id, user_id = get_message_info(update)
-    parsed_data = parse_message(text_message)
+    chat_id, user_id = get_message_info(update)
+    parsed_data = context.args 
 
     if len(parsed_data) != 3: 
         raise InputSizeError(context, chat_id, len(parsed_data), 3)
@@ -118,19 +130,31 @@ def update_event(update, context):
     elif field == 'date':
 
         try:
-            event_date_time = datetime.strptime(new_entry, "%d/%m/%Y %H:%M")
+         event_date = dt.datetime.strptime(new_entry, "%d/%m/%Y").date()
 
         except ValueError:
-            raise DateTimeValueError(context, chat_id)
+            raise DateValueError(context, chat_id)
 
-        present = datetime.now()
-
-        if event_date_time < present:
+        present = dt.date.today()
+        if event_date < present:
             raise EventInThePastError(context, chat_id)
 
-        target_line[3] = new_entry
+    elif field == 'time':
+
+        try:
+            event_time = dt.datetime.strptime(new_entry, "%H:%M").time()
+
+        except ValueError:
+            raise TimeValueError(context, chat_id)
 
     elif field == 'duration':
+
+        try:
+            event_duration = dt.datetime.strptime(new_entry, "%H:%M").time()
+
+        except ValueError:
+            raise TimeValueError(context, chat_id)
+
         target_line[4] = new_entry
 
     else:
@@ -153,8 +177,8 @@ def update_event(update, context):
 
 
 def join_event(update, context):
-    text_message, chat_id, user_id = get_message_info(update)
-    parsed_data = parse_message(text_message)
+    chat_id, user_id = get_message_info(update)
+    parsed_data = context.args 
 
     if len(parsed_data) != 1: 
         raise InputSizeError(context, chat_id, len(parsed_data), 1)
@@ -181,8 +205,8 @@ def join_event(update, context):
 def leave_event(update, context):
     '''Allows the user the leave an event'''
 
-    text_message, chat_id, user_id = get_message_info(update)
-    parsed_data = parse_message(text_message)
+    chat_id, user_id = get_message_info(update)
+    parsed_data = context.args 
 
     if len(parsed_data) != 1: 
         raise InputSizeError(context, chat_id, len(parsed_data), 1)
@@ -211,8 +235,8 @@ def leave_event(update, context):
 def delete_event(update, context):
     '''Allows user to remove an event.'''
 
-    text_message, chat_id, user_id = get_message_info(update)
-    parsed_data = parse_message(text_message)
+    chat_id, user_id = get_message_info(update)
+    parsed_data = context.args 
 
     if len(parsed_data) != 1: 
         raise InputSizeError(context, chat_id, len(parsed_data), 1)

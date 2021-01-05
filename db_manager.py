@@ -13,32 +13,6 @@ SPORT_POSITION = 2
 logger = logging.getLogger(__name__)
 
 
-def parse_line(line):
-    '''Parses a comma separated line.'''
-
-    data = line.split(',')
-    parsed_data = []
-
-    for datum in data:
-
-        stripped_datum = datum.strip()
-        parsed_data.append(stripped_datum)
-
-    return parsed_data
-
-
-def parse_message(text):
-    '''Gets data from telegram message.'''
-
-    command_match = re.match(r'^[\/a-z]+', text)
-
-    if command_match:
-        text = text[len(command_match.group()):]
-
-    parsed_data = parse_line(text)
-    return parsed_data
-
-
 def generate_key():
     '''Generates primary key for database.'''
 
@@ -112,14 +86,15 @@ def overwrite_line(db_as_list, target_index, updated_line=None):
 #        return missing_players
 
 
-def store_in_db(chat_id, user_id, sport, date_time, duration):
+def store_in_db(chat_id, user_id, sport, date, time, duration):
     '''Stores new matches in the database.'''
 
     primary_key = generate_key()
 
     with open('matches_db.csv', 'a') as db:
         writer = csv.writer(db)
-        writer.writerow([primary_key, chat_id, sport, date_time, duration, user_id])
+        writer.writerow([primary_key, chat_id, sport, date, time, duration, user_id])
         logger.info(f'new match {primary_key} added')
 
     return primary_key
+

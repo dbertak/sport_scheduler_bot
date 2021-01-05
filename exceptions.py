@@ -28,12 +28,22 @@ class SportKeyError(KeyError):
         super().__init__(self.message)
 
 
-class DateTimeValueError(ValueError):
+class DateValueError(ValueError):
     '''To be raised when user types date and time format wrong.'''
 
-    def __init__(self, context, chat_id, message='Wrong date time format'):
+    def __init__(self, context, chat_id, message='Wrong date format'):
         self.message = message
-        self.text = 'Wrong date and time format, please use dd/mm/yyyy hh:mm'
+        self.text = 'Wrong date format, please use dd/mm/yyyy'
+        context.bot.send_message(chat_id, self.text)
+        super().__init__(self.message)
+
+
+class TimeValueError(ValueError):
+    '''To be raised when user types date and time format wrong.'''
+
+    def __init__(self, context, chat_id, message='Wrong time format'):
+        self.message = message
+        self.text = 'Wrong time format, please use hh:mm'
         context.bot.send_message(chat_id, self.text)
         super().__init__(self.message)
 
