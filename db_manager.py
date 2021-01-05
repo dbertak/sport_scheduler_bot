@@ -6,7 +6,7 @@ import string
 
 from config import CONFIG
 
-FIRST_PLAYER_POSITION = 5
+FIRST_PLAYER_POSITION = 6 
 SPORT_TYPES = CONFIG['sport_types']
 SPORT_POSITION = 2
 
