@@ -3,16 +3,17 @@ from datetime import datetime, timedelta
 
 import logging
 
-from config import CONFIG
 from utils import (
     get_message_info,
     get_match_in_db
 )
 from db_manager import (
+    FIRST_PLAYER_POSITION,   
+    SPORT_TYPES,
     store_in_db,
     parse_message,
     overwrite_line,
-    check_players_number
+#   get_missing_players_number
 )
 from exceptions import (
     SportKeyError,
@@ -22,8 +23,6 @@ from exceptions import (
     UnauthorizedUserError
 )
 
-SPORT_TYPES = CONFIG['sport_types']
-FIRST_PLAYER_POSITION = 5
 
 logger = logging.getLogger(__name__)
 
@@ -89,7 +88,8 @@ def new_match(update, context):
     match_id = store_in_db(chat_id, user_id, sport, date_time, duration)
     context.bot.send_message(
         chat_id=chat_id,
-        text=f'Match {match_id} has been successfully created'
+        text=f'Match {match_id} has been successfully created,\n'
+             f'{match_id} must be specified when using the commands /update, /join, /leave and /remove as first argument.'
     )
 
 
