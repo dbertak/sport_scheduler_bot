@@ -8,7 +8,7 @@ from utils import (
     get_match_in_db
 )
 from db_manager import (
-    FIRST_PLAYER_POSITION,   
+    POSITIONS,
     SPORT_TYPES,
     store_in_db,
     overwrite_line,
@@ -24,7 +24,6 @@ from exceptions import (
 )
 
 logger = logging.getLogger(__name__)
-
 
 def start(update, context):
     context.bot.send_message(
@@ -116,7 +115,7 @@ def update_event(update, context):
 
     db_as_list, target_line, target_index = get_match_in_db(context, match_id, chat_id, user_id)
 
-    if str(user_id) not in target_line[FIRST_PLAYER_POSITION:]:
+    if str(user_id) not in target_line[POSITIONS['first_player']:]:
         raise UnauthorizedUserError(context, chat_id, match_id)
 
     if field == 'sport':
@@ -125,7 +124,7 @@ def update_event(update, context):
             error_message = f'Sport {new_entry} not implemented yet'
             raise SportKeyError(context, chat_id, new_entry, error_message)
 
-        target_line[2] = new_entry
+        target_line[POSITIONS['sport']] = new_entry
 
     elif field == 'date':
 
@@ -136,8 +135,11 @@ def update_event(update, context):
             raise DateValueError(context, chat_id)
 
         present = dt.date.today()
+
         if event_date < present:
             raise EventInThePastError(context, chat_id)
+
+        target_line[POSITIONS['date']] = new_entry
 
     elif field == 'time':
 
@@ -147,6 +149,8 @@ def update_event(update, context):
         except ValueError:
             raise TimeValueError(context, chat_id)
 
+        target_line[POSITIONS['time']] = new_entry
+
     elif field == 'duration':
 
         try:
@@ -155,7 +159,7 @@ def update_event(update, context):
         except ValueError:
             raise TimeValueError(context, chat_id)
 
-        target_line[4] = new_entry
+        target_line[POSITIONS['duration']] = new_entry
 
     else:
         logger.error(f'Unrecognized field {field}')
@@ -186,7 +190,7 @@ def join_event(update, context):
     match_id = parsed_data[0]
     db, match_line, index = get_match_in_db(context, match_id, chat_id, user_id)
 
-    if str(user_id) in match_line[FIRST_PLAYER_POSITION:]:
+    if str(user_id) in match_line[POSITIONS['first_player']:]:
         context.bot.send_message(
             chat_id=chat_id,
             text='User already joined the match'
@@ -214,7 +218,7 @@ def leave_event(update, context):
     match_id = parsed_data[0]
     db, match_line, index = get_match_in_db(context, match_id, chat_id, user_id)
 
-    if str(user_id) in match_line[FIRST_PLAYER_POSITION:]:
+    if str(user_id) in match_line[POSITIONS['first_player']:]:
         match_line.remove(str(user_id))
         overwrite_line(db, index, match_line)
         context.bot.send_message(
@@ -244,7 +248,7 @@ def delete_event(update, context):
     match_id = parsed_data[0]
     db, match_line, index = get_match_in_db(context, match_id, chat_id, user_id)
 
-    if str(user_id) in match_line[FIRST_PLAYER_POSITION:]:
+    if str(user_id) in match_line[POSITIONS['first_player']:]:
         overwrite_line(db, index)
         context.bot.send_message(
             chat_id=chat_id,
