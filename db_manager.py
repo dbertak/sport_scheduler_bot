@@ -4,10 +4,10 @@ import random
 import re
 import string
 
-from config import CONFIG
+from config import SPORT_CONFIG
 
 FIRST_PLAYER_POSITION = 6 
-SPORT_TYPES = CONFIG['sport_types']
+SPORT_TYPES = SPORT_CONFIG['sport_types']
 SPORT_POSITION = 2
 
 logger = logging.getLogger(__name__)
