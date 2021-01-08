@@ -185,6 +185,13 @@ def update_event(update, context):
     )
     logger.info('Match successfully updated')
 
+    missing_players = get_missing_players_number(match_id)
+
+    if missing_players > 0:
+        context.bot.send_message(
+            chat_id=chat_id,
+            text=f'Match {match_id} requires {missing_players} additional players'
+        )
 
 def join_event(update, context):
     chat_id, user_id = get_message_info(update)
