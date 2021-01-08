@@ -12,7 +12,7 @@ from db_manager import (
     SPORT_TYPES,
     store_in_db,
     overwrite_line,
-#   get_missing_players_number
+    get_missing_players_number
 )
 from exceptions import (
     SportKeyError,
@@ -103,6 +103,11 @@ def new_match(update, context):
              f'{match_id} must be specified when using the commands /update, /join, /leave and /remove as first argument.'
     )
 
+    missing_players = get_missing_players_number(match_id)
+    context.bot.send_message(
+        chat_id=chat_id,
+        text=f'Match {match_id} requires {missing_players} additional players'
+    )
 
 def update_event(update, context):
     chat_id, user_id = get_message_info(update)
@@ -171,7 +176,8 @@ def update_event(update, context):
         )
         raise ValueError(f'Unrecognized field {field}')
 
-    overwrite_line(db_as_list, target_index, target_line)
+    new_line = ','.join(map(str, target_line))
+    overwrite_line(db_as_list, target_index, new_line)
 
     context.bot.send_message(
         chat_id=chat_id,
@@ -189,8 +195,9 @@ def join_event(update, context):
 
     match_id = parsed_data[0]
     db, match_line, index = get_match_in_db(context, match_id, chat_id, user_id)
+    players_list = match_line[POSITIONS['first_player']:]
 
-    if str(user_id) in match_line[POSITIONS['first_player']:]:
+    if str(user_id) in players_list:
         context.bot.send_message(
             chat_id=chat_id,
             text='User already joined the match'
@@ -199,12 +206,20 @@ def join_event(update, context):
 
     else:
         match_line.append(user_id)
-        overwrite_line(db, index, match_line)
+        new_line = ','.join(map(str, match_line))
+        overwrite_line(db, index, new_line)
         context.bot.send_message(
             chat_id=chat_id,
             text=f'User has successfully joined match {match_id}'
         )
         logger.info('User has successfully joined the match')
+        missing_players = get_missing_players_number(match_id)
+
+        if missing_players > 0:
+            context.bot.send_message(
+                chat_id=chat_id,
+                text=f'Match {match_id} requires {missing_players} additional players'
+            )
 
 def leave_event(update, context):
     '''Allows the user the leave an event'''
@@ -217,15 +232,26 @@ def leave_event(update, context):
 
     match_id = parsed_data[0]
     db, match_line, index = get_match_in_db(context, match_id, chat_id, user_id)
+    players_list = match_line[POSITIONS['first_player']:]
 
-    if str(user_id) in match_line[POSITIONS['first_player']:]:
-        match_line.remove(str(user_id))
-        overwrite_line(db, index, match_line)
+    if str(user_id) in players_list:
+        players_list.remove(str(user_id))
+        match_line[POSITIONS['first_player']:] = players_list
+        new_line = ','.join(map(str, match_line))
+        overwrite_line(db, index, new_line)
         context.bot.send_message(
             chat_id=chat_id,
             text='User removed from the match'
         )
         logger.info('User has successfully left the match')
+
+        missing_players = get_missing_players_number(match_id)
+
+        if missing_players > 0:
+            context.bot.send_message(
+                chat_id=chat_id,
+                text=f'Match {match_id} requires {missing_players} additional players'
+            )
 
     else:
         context.bot.send_message(
@@ -247,8 +273,9 @@ def delete_event(update, context):
 
     match_id = parsed_data[0]
     db, match_line, index = get_match_in_db(context, match_id, chat_id, user_id)
+    players_list = match_line[POSITIONS['first_player']:]
 
-    if str(user_id) in match_line[POSITIONS['first_player']:]:
+    if str(user_id) in players_list:
         overwrite_line(db, index)
         context.bot.send_message(
             chat_id=chat_id,

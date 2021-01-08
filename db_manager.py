@@ -1,4 +1,3 @@
-import csv
 import logging
 import random
 import re
@@ -67,18 +66,19 @@ def overwrite_line(db_as_list, target_index, updated_line=None):
     else:  # when updated line is not specified it just deletes the line
         db_as_list.pop(target_index)
 
+    updated_db = '\n'.join(db_as_list)
+
     with open('matches_db.csv', 'w') as db:
-        writer = csv.writer(db)
-        writer.writerows(db_as_list)
-        logger.info('database successfully updated')
+        db.write(updated_db)    
+    
+    logger.info('database successfully updated')
 
 
 def get_sport_type_info(sport):
     '''Retrieves infos about player numbers of a given sport.'''
 
-    sport_dict = SPORT_TYPES.get(sport)
-    required_players = sport_dict['required_players']
-    maximum_number_players = sport_dict['maximum_number_players']
+    sport_dict = SPORT_TYPES[sport]
+    required_players, maximum_number_players = sport_dict.values()
 
     return required_players, maximum_number_players
 
@@ -86,9 +86,9 @@ def get_sport_type_info(sport):
 def get_missing_players_number(match_id):
     '''Returns the number of missing players.'''
 
-    _, match_line, __ = find_match(match_id)
+    match_line = find_match(match_id)[1]
     sport = match_line[POSITIONS['sport']]
-    required_players, ___ = get_sport_type_info(sport)
+    required_players = get_sport_type_info(sport)[0]
     number_of_players = len(match_line[POSITIONS['first_player']:])
 
     missing_players = required_players - number_of_players
@@ -103,11 +103,14 @@ def store_in_db(chat_id, user_id, sport, date, time, duration):
     '''Stores new matches in the database.'''
 
     primary_key = generate_key()
+    entries = [primary_key, chat_id, sport, date, time, duration, user_id]
+    line = ','.join(map(str, entries))
+    line = f'{line}\n'
 
     with open('matches_db.csv', 'a') as db:
-        writer = csv.writer(db)
-        writer.writerow([primary_key, chat_id, sport, date, time, duration, user_id])
-        logger.info(f'new match {primary_key} added')
+        db.write(line)
+
+    logger.info(f'new match {primary_key} added')
 
     return primary_key
 
