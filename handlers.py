@@ -52,7 +52,7 @@ def show_help(update, context):
 def show_sports(update, context):
     '''Prints available sports'''
 
-    text = ', '.join(sport for sport in SPORT_TYPES.keys())
+    text = ', '.join(SPORT_TYPES.keys())
     context.bot.send_message(
         chat_id=update.effective_chat.id,
         text=text
@@ -85,7 +85,7 @@ def new_match(update, context):
         raise TimeValueError(context, chat_id)
 
     try:
-        event_duration =dt.datetime.strptime(duration, "%H:%M").time()
+        event_duration = dt.datetime.strptime(duration, "%H:%M").time()
 
     except ValueError:
         raise TimeValueError(context, chat_id)
@@ -134,16 +134,18 @@ def update_event(update, context):
     elif field == 'date':
 
         try:
-         event_date = dt.datetime.strptime(new_entry, "%d/%m/%Y").date()
+            event_date = dt.datetime.strptime(new_entry, "%d/%m/%Y").date()
 
         except ValueError:
             raise DateValueError(context, chat_id)
 
-        present = dt.date.today()
+        present = dt.datetime.now()
+        event_time = dt.datetime.strptime(target_line[POSITIONS['time']], "%H:%M").time()
+        event_date_time = dt.datetime.combine(event_date, event_time)
 
-        if event_date < present:
+        if event_date_time < present:
             raise EventInThePastError(context, chat_id)
-
+        
         target_line[POSITIONS['date']] = new_entry
 
     elif field == 'time':
@@ -153,6 +155,13 @@ def update_event(update, context):
 
         except ValueError:
             raise TimeValueError(context, chat_id)
+
+        present = dt.datetime.now()
+        event_date = dt.datetime.strptime(target_line[POSITIONS['date']], "%d/%m/%Y").date()
+        event_date_time = dt.datetime.combine(event_date, event_time)
+
+        if event_date_time < present:
+            raise EventInThePastError(context, chat_id)
 
         target_line[POSITIONS['time']] = new_entry
 
