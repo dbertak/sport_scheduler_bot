@@ -1,9 +1,9 @@
 from exceptions import DatabaseNotFoundError, MatchNotFoundError
-from db_manager import find_match
+from db_manager import find_match, overwrite_line
 
 
 def get_message_info(update):
-    '''retrieves the relevant information from the message.'''
+    '''Retrieves the relevant information from the message.'''
 
     chat_id = update.effective_chat.id
     user_id = update.message.from_user.id
@@ -14,7 +14,7 @@ def get_match_in_db(context, match_id, chat_id, user_id):
     '''Tries to find a match in the database, raises the proper exceptions in case of failure.'''
 
     try:
-        db, match_line, index = find_match(match_id)
+        db, match, index = find_match(match_id)
 
     except FileNotFoundError:
         raise DatabaseNotFoundError(context, chat_id)
@@ -23,5 +23,11 @@ def get_match_in_db(context, match_id, chat_id, user_id):
         error_message = f'Match {match_id} not found'
         raise MatchNotFoundError(context, chat_id, match_id, error_message)
 
-    return db, match_line, index
+    return db, match, index
+
+def delete_match(match_id):
+    '''Deletes a match.'''
+
+    db, _, index = find_match(match_id)
+    overwrite_line(db, index)
 

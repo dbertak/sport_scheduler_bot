@@ -8,11 +8,10 @@ from utils import (
     get_match_in_db
 )
 from db_manager import (
-    POSITIONS,
     SPORT_TYPES,
+    Match,
     store_in_db,
-    overwrite_line,
-    get_missing_players_number
+    overwrite_line
 )
 from exceptions import (
     SportKeyError,
@@ -22,6 +21,7 @@ from exceptions import (
     InputSizeError,
     UnauthorizedUserError
 )
+from reminder import Reminder
 
 logger = logging.getLogger(__name__)
 
@@ -30,6 +30,8 @@ def start(update, context):
         chat_id=update.effective_chat.id,
         text='Hi! I am here to help you scheduling sport matches with your friends\n'
              'Type /help for more information'
+             'GitHub: [SportSchedulerBot](https://github.com/dbertak/sport_scheduler_bot)',
+        parse_mode=ParseMode.MARKDOWN
         )
 
 
@@ -38,14 +40,16 @@ def show_help(update, context):
         chat_id=update.effective_chat.id,
         text='*First of all, add this bot to your group chat*\n'
              'Schedule a new match with /newmatch command (prints match id)\n'
+             'syntax: /newmatch <sport> <date> <time> <duration>\n'
+             'e.g. /newmatch tennis 10/03/2021 17:30 1:30\n'
              'Other commands:\n'
              '/update, allows to modify type of sport, date/time or match duration.\n'
+             'syntax: /update <match_id> <field> <new value>\n'
+             'e.g. /update 2039 time 20:15 (changes the time of event 2039 to 20:15)\n'
              '/showsports, prints all the available sports.\n'
-             '/join, to join matches\n'
-             '/leave, to abandon matches\n'
-             '/remove, to cancel a match\n'
-             'GitHub: [SportSchedulerBot](https://github.com/dbertak/sport_scheduler_bot)',
-        parse_mode=ParseMode.MARKDOWN
+             '/join <match id>, to join a match\n'
+             '/leave <match id>, to abandon a match\n'
+             '/remove <match id>, to cancel a match\n'
         )
 
 
@@ -91,23 +95,27 @@ def new_match(update, context):
         raise TimeValueError(context, chat_id)
 
     present = dt.datetime.now()
-    event_date_time = dt.datetime.combine(event_date, event_time)
+    event_datetime = dt.datetime.combine(event_date, event_time)
 
-    if event_date_time < present:
+    if event_datetime < present:
         raise EventInThePastError(context, chat_id)
 
-    match_id = store_in_db(chat_id, user_id, sport, date, time, duration)
+    match = Match(
+        chat_id=chat_id,
+        sport=sport,
+        date=date,
+        time=time,
+        duration=duration,
+        players_list=[user_id]
+    )
+
+    match_id = store_in_db(match)
     context.bot.send_message(
         chat_id=chat_id,
         text=f'Match {match_id} has been successfully created,\n'
              f'{match_id} must be specified when using the commands /update, /join, /leave and /remove as first argument.'
     )
 
-    missing_players = get_missing_players_number(match_id)
-    context.bot.send_message(
-        chat_id=chat_id,
-        text=f'Match {match_id} requires {missing_players} additional players'
-    )
 
 def update_event(update, context):
     chat_id, user_id = get_message_info(update)
@@ -118,9 +126,9 @@ def update_event(update, context):
 
     match_id, field, new_entry = parsed_data
 
-    db_as_list, target_line, target_index = get_match_in_db(context, match_id, chat_id, user_id)
+    db_as_list, match, target_index = get_match_in_db(context, match_id, chat_id, user_id)
 
-    if str(user_id) not in target_line[POSITIONS['first_player']:]:
+    if str(user_id) not in match.players_list:
         raise UnauthorizedUserError(context, chat_id, match_id)
 
     if field == 'sport':
@@ -129,7 +137,7 @@ def update_event(update, context):
             error_message = f'Sport {new_entry} not implemented yet'
             raise SportKeyError(context, chat_id, new_entry, error_message)
 
-        target_line[POSITIONS['sport']] = new_entry
+        match.sport = new_entry
 
     elif field == 'date':
 
@@ -140,13 +148,13 @@ def update_event(update, context):
             raise DateValueError(context, chat_id)
 
         present = dt.datetime.now()
-        event_time = dt.datetime.strptime(target_line[POSITIONS['time']], "%H:%M").time()
-        event_date_time = dt.datetime.combine(event_date, event_time)
+        event_time = dt.datetime.strptime(match.time, "%H:%M").time()
+        event_datetime = dt.datetime.combine(event_date, event_time)
 
-        if event_date_time < present:
+        if event_datetime < present:
             raise EventInThePastError(context, chat_id)
         
-        target_line[POSITIONS['date']] = new_entry
+        match.date = new_entry
 
     elif field == 'time':
 
@@ -157,13 +165,13 @@ def update_event(update, context):
             raise TimeValueError(context, chat_id)
 
         present = dt.datetime.now()
-        event_date = dt.datetime.strptime(target_line[POSITIONS['date']], "%d/%m/%Y").date()
-        event_date_time = dt.datetime.combine(event_date, event_time)
+        event_date = dt.datetime.strptime(match.date, "%d/%m/%Y").date()
+        event_datetime = dt.datetime.combine(event_date, event_time)
 
-        if event_date_time < present:
+        if event_datetime < present:
             raise EventInThePastError(context, chat_id)
 
-        target_line[POSITIONS['time']] = new_entry
+        match.time = new_entry
 
     elif field == 'duration':
 
@@ -173,7 +181,7 @@ def update_event(update, context):
         except ValueError:
             raise TimeValueError(context, chat_id)
 
-        target_line[POSITIONS['duration']] = new_entry
+        match.duration = new_entry
 
     else:
         logger.error(f'Unrecognized field {field}')
@@ -185,8 +193,7 @@ def update_event(update, context):
         )
         raise ValueError(f'Unrecognized field {field}')
 
-    new_line = ','.join(map(str, target_line))
-    overwrite_line(db_as_list, target_index, new_line)
+    overwrite_line(db_as_list, target_index, match)
 
     context.bot.send_message(
         chat_id=chat_id,
@@ -194,13 +201,6 @@ def update_event(update, context):
     )
     logger.info('Match successfully updated')
 
-    missing_players = get_missing_players_number(match_id)
-
-    if missing_players > 0:
-        context.bot.send_message(
-            chat_id=chat_id,
-            text=f'Match {match_id} requires {missing_players} additional players'
-        )
 
 def join_event(update, context):
     chat_id, user_id = get_message_info(update)
@@ -210,10 +210,9 @@ def join_event(update, context):
         raise InputSizeError(context, chat_id, len(parsed_data), 1)
 
     match_id = parsed_data[0]
-    db, match_line, index = get_match_in_db(context, match_id, chat_id, user_id)
-    players_list = match_line[POSITIONS['first_player']:]
+    db, match, index = get_match_in_db(context, match_id, chat_id, user_id)
 
-    if str(user_id) in players_list:
+    if str(user_id) in match.players_list:
         context.bot.send_message(
             chat_id=chat_id,
             text='User already joined the match'
@@ -221,21 +220,14 @@ def join_event(update, context):
         raise ValueError('User already joined the match')
 
     else:
-        match_line.append(user_id)
-        new_line = ','.join(map(str, match_line))
-        overwrite_line(db, index, new_line)
+        match.add_player(str(user_id))
+        overwrite_line(db, index, match)
         context.bot.send_message(
             chat_id=chat_id,
             text=f'User has successfully joined match {match_id}'
         )
         logger.info('User has successfully joined the match')
-        missing_players = get_missing_players_number(match_id)
 
-        if missing_players > 0:
-            context.bot.send_message(
-                chat_id=chat_id,
-                text=f'Match {match_id} requires {missing_players} additional players'
-            )
 
 def leave_event(update, context):
     '''Allows the user the leave an event'''
@@ -247,27 +239,17 @@ def leave_event(update, context):
         raise InputSizeError(context, chat_id, len(parsed_data), 1)
 
     match_id = parsed_data[0]
-    db, match_line, index = get_match_in_db(context, match_id, chat_id, user_id)
-    players_list = match_line[POSITIONS['first_player']:]
+    db, match, index = get_match_in_db(context, match_id, chat_id, user_id)
 
-    if str(user_id) in players_list:
-        players_list.remove(str(user_id))
-        match_line[POSITIONS['first_player']:] = players_list
-        new_line = ','.join(map(str, match_line))
-        overwrite_line(db, index, new_line)
+    if str(user_id) in match.players_list:
+
+        match.remove_player(str(user_id))
+        overwrite_line(db, index, match)
         context.bot.send_message(
             chat_id=chat_id,
             text='User removed from the match'
         )
         logger.info('User has successfully left the match')
-
-        missing_players = get_missing_players_number(match_id)
-
-        if missing_players > 0:
-            context.bot.send_message(
-                chat_id=chat_id,
-                text=f'Match {match_id} requires {missing_players} additional players'
-            )
 
     else:
         context.bot.send_message(
@@ -288,10 +270,9 @@ def delete_event(update, context):
         raise InputSizeError(context, chat_id, len(parsed_data), 1)
 
     match_id = parsed_data[0]
-    db, match_line, index = get_match_in_db(context, match_id, chat_id, user_id)
-    players_list = match_line[POSITIONS['first_player']:]
+    db, match, index = get_match_in_db(context, match_id, chat_id, user_id)
 
-    if str(user_id) in players_list:
+    if str(user_id) in match.players_list:
         overwrite_line(db, index)
         context.bot.send_message(
             chat_id=chat_id,
@@ -301,4 +282,4 @@ def delete_event(update, context):
 
     else:
         raise UnauthorizedUserError(context, chat_id, match_id)
- 
+
