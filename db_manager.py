@@ -86,7 +86,7 @@ def get_missing_players_number(match_id):
     match = find_match(match_id)[1]
     sport = match.sport
     required_players = get_sport_type_info(sport)[0]
-    number_of_players = len(match.player_list)
+    number_of_players = len(match.players_list)
     missing_players = required_players - number_of_players
 
     if missing_players < 0:
