@@ -1,10 +1,13 @@
 from dataclasses import dataclass, field
+from datetime import datetime, date, time
 
 import logging
 import random
 import string
 
 from config import SPORT_CONFIG
+from exceptions import EventInThePastError
+
 
 SPORT_TYPES = SPORT_CONFIG['sport_types']
 POSITIONS = {
@@ -120,12 +123,17 @@ class Match:
 
     chat_id: int
     sport: str
-    date: str
-    time: str
-    duration: str
+    date: date
+    time: time
+    duration: time
     players_list: list
     match_id: str = field(init=False)
-    # maybe add reminder here
+    datetime: datetime = field(init=False)
+
+    def __post_init__(self):
+
+        self.convert_dates_and_times()
+        self.datetime = datetime.combine(self.date, self.time)
 
     def __str__(self):
 
@@ -134,6 +142,18 @@ class Match:
 
         return ','.join(map(str, match_fields))
 
+    def is_in_the_past(self):
+        '''Checks whether an event is in the past or not. If so, raise the proper exception.'''
+
+        now = datetime.now()
+
+        if self.datetime < now:
+            logger.debug(f'Event in the past check: {self.datetime} < {now}')
+
+            return True
+
+        return False
+
     def add_player(self, player):
         '''Adds a player who has joined the match.'''
 
@@ -141,8 +161,19 @@ class Match:
         self.players_list.append(player)
 
     def remove_player(self, player):
-        '''Adds a player who has joined the match.'''
+        '''Removes a player who has left the match.'''
 
         assert type(player) == str, 'Convert player id to string'
         self.players_list.remove(player)
 
+    def convert_dates_and_times(self):
+        '''Converts dates and times from the string format to the appropriate format.'''
+
+        if type(self.date) == str:
+            self.date = date.fromisoformat(self.date)
+
+        if type(self.time) == str:
+            self.time = time.fromisoformat(self.time)
+
+        if type(self.duration) == str:
+            self.duration = time.fromisoformat(self.duration)

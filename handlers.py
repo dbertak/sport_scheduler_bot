@@ -1,6 +1,6 @@
 from telegram import ParseMode
+from datetime import datetime
 
-import datetime as dt
 import logging
 
 from utils import (
@@ -23,7 +23,9 @@ from exceptions import (
 )
 from reminder import Reminder
 
+
 logger = logging.getLogger(__name__)
+
 
 def start(update, context):
     context.bot.send_message(
@@ -77,37 +79,34 @@ def new_match(update, context):
         raise SportKeyError(context, chat_id, sport, error_message)
 
     try:
-        event_date = dt.datetime.strptime(date, "%d/%m/%Y").date()
+        event_date = datetime.strptime(date, "%d/%m/%Y").date()
 
     except ValueError:
         raise DateValueError(context, chat_id)
 
     try:
-        event_time = dt.datetime.strptime(time, "%H:%M").time()
+        event_time = datetime.strptime(time, "%H:%M").time()
 
     except ValueError:
         raise TimeValueError(context, chat_id)
 
     try:
-        event_duration = dt.datetime.strptime(duration, "%H:%M").time()
+        event_duration = datetime.strptime(duration, "%H:%M").time()
 
     except ValueError:
         raise TimeValueError(context, chat_id)
 
-    present = dt.datetime.now()
-    event_datetime = dt.datetime.combine(event_date, event_time)
-
-    if event_datetime < present:
-        raise EventInThePastError(context, chat_id)
-
     match = Match(
         chat_id=chat_id,
         sport=sport,
-        date=date,
-        time=time,
-        duration=duration,
+        date=event_date,
+        time=event_time,
+        duration=event_duration,
         players_list=[user_id]
     )
+
+    if match.is_in_the_past():
+        raise EventInThePastError(context, chat_id)
 
     match_id = store_in_db(match)
     context.bot.send_message(
@@ -142,46 +141,38 @@ def update_event(update, context):
     elif field == 'date':
 
         try:
-            event_date = dt.datetime.strptime(new_entry, "%d/%m/%Y").date()
+            event_date = datetime.strptime(new_entry, "%d/%m/%Y").date()
 
         except ValueError:
             raise DateValueError(context, chat_id)
 
-        present = dt.datetime.now()
-        event_time = dt.datetime.strptime(match.time, "%H:%M").time()
-        event_datetime = dt.datetime.combine(event_date, event_time)
+        match.date = event_date
 
-        if event_datetime < present:
+        if match.is_in_the_past():
             raise EventInThePastError(context, chat_id)
-        
-        match.date = new_entry
 
     elif field == 'time':
 
         try:
-            event_time = dt.datetime.strptime(new_entry, "%H:%M").time()
+            event_time = datetime.strptime(new_entry, "%H:%M").time()
 
         except ValueError:
             raise TimeValueError(context, chat_id)
 
-        present = dt.datetime.now()
-        event_date = dt.datetime.strptime(match.date, "%d/%m/%Y").date()
-        event_datetime = dt.datetime.combine(event_date, event_time)
+        match.time = event_time
 
-        if event_datetime < present:
+        if match.is_in_the_past():
             raise EventInThePastError(context, chat_id)
-
-        match.time = new_entry
 
     elif field == 'duration':
 
         try:
-            event_duration = dt.datetime.strptime(new_entry, "%H:%M").time()
+            event_duration = datetime.strptime(new_entry, "%H:%M").time()
 
         except ValueError:
             raise TimeValueError(context, chat_id)
 
-        match.duration = new_entry
+        match.duration = event_duration
 
     else:
         logger.error(f'Unrecognized field {field}')
