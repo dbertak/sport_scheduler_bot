@@ -219,6 +219,13 @@ def join_event(update, context):
         )
         raise ValueError('User already joined the match')
 
+    elif match.is_match_full():
+        context.bot.send_message(
+            chat_id=chat_id,
+            text=f'We are sorry but match {match_id} has already reached the maximum number of players.\n'
+                  'Feel free to create a new one with /newmatch.'
+        )
+
     else:
         match.add_player(str(user_id))
         overwrite_line(db, index, match)

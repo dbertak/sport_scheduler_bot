@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 
 
 def find_match(match_id):
-    '''Searches the database for the given match'''
+    '''Searches the database for the given match.'''
 
     with open('matches_db.csv', 'r') as db:
         db_as_text = db.read()
@@ -53,7 +53,7 @@ def find_match(match_id):
 
 
 def overwrite_line(db_as_list, target_index, match=None):
-    '''Overwrites a line of the database with the given new one'''
+    '''Overwrites a line of the database with the given new one.'''
 
     if match:
 
@@ -68,7 +68,7 @@ def overwrite_line(db_as_list, target_index, match=None):
     with open('matches_db.csv', 'w') as db:
         db.write(updated_db)
 
-    logger.info('database successfully updated')
+    logger.info('Database successfully updated')
 
 
 def get_sport_type_info(sport):
@@ -144,18 +144,6 @@ class Match:
 
         return ','.join(map(str, match_fields))
 
-    def is_in_the_past(self):
-        '''Checks whether an event is in the past or not. If so, raise the proper exception.'''
-
-        now = self.timezone.localize(datetime.now())
-
-        if self.datetime < now:
-            logger.debug(f'Event in the past check: {self.datetime} < {now}')
-
-            return True
-
-        return False
-
     def add_player(self, player):
         '''Adds a player who has joined the match.'''
 
@@ -185,6 +173,28 @@ class Match:
 
         now = self.timezone.localize(datetime.now())
         time_left = self.datetime - now
+        logger.debug(f'Time left to event: {self.datetime} - {now} = {time_left}')
 
         return time_left
+
+    def is_match_full(self):
+        '''Checks whether the maximum number of players is reached.'''
+
+        maximum_number_of_players = get_sport_type_info(self.sport)[1]
+
+        if len(self.players_list) == maximum_number_of_players:
+            return True
+
+        return False
+
+    def is_in_the_past(self):
+        '''Checks whether an event is in the past or not.'''
+
+        now = self.timezone.localize(datetime.now())
+
+        if self.datetime < now:
+            logger.debug(f'Event in the past check: {self.datetime} < {now}')
+            return True
+
+        return False
 
