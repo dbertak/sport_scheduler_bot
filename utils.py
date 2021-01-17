@@ -26,7 +26,7 @@ def get_match_in_db(context, match_id, chat_id, user_id):
     return db, match, index
 
 def delete_match(match_id):
-    '''Deletes a match.'''
+    '''Deletes a match in the database (not to be used for the /remove command).'''
 
     db, _, index = find_match(match_id)
     overwrite_line(db, index)

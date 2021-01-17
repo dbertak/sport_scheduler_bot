@@ -1,12 +1,12 @@
 from dataclasses import dataclass, field
 from datetime import datetime, date, time
+from pytz import timezone
 
 import logging
 import random
 import string
 
 from config import SPORT_CONFIG
-from exceptions import EventInThePastError
 
 
 SPORT_TYPES = SPORT_CONFIG['sport_types']
@@ -127,6 +127,7 @@ class Match:
     time: time
     duration: time
     players_list: list
+    timezone: timezone = field(default=timezone('Europe/Rome'))
     match_id: str = field(init=False)
     datetime: datetime = field(init=False)
 
@@ -134,6 +135,7 @@ class Match:
 
         self.convert_dates_and_times()
         self.datetime = datetime.combine(self.date, self.time)
+        self.datetime = self.timezone.localize(self.datetime)
 
     def __str__(self):
 
@@ -145,7 +147,7 @@ class Match:
     def is_in_the_past(self):
         '''Checks whether an event is in the past or not. If so, raise the proper exception.'''
 
-        now = datetime.now()
+        now = self.timezone.localize(datetime.now())
 
         if self.datetime < now:
             logger.debug(f'Event in the past check: {self.datetime} < {now}')
@@ -177,3 +179,12 @@ class Match:
 
         if type(self.duration) == str:
             self.duration = time.fromisoformat(self.duration)
+
+    def get_time_to_event(self):
+        '''Returns how much time is left since the beginning of the event.'''
+
+        now = self.timezone.localize(datetime.now())
+        time_left = self.datetime - now
+
+        return time_left
+

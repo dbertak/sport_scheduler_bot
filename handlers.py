@@ -1,5 +1,5 @@
-from telegram import ParseMode
 from datetime import datetime
+from telegram import ParseMode
 
 import logging
 
@@ -115,6 +115,8 @@ def new_match(update, context):
              f'{match_id} must be specified when using the commands /update, /join, /leave and /remove as first argument.'
     )
 
+    Reminder(update, context, match)
+
 
 def update_event(update, context):
     chat_id, user_id = get_message_info(update)
@@ -137,6 +139,7 @@ def update_event(update, context):
             raise SportKeyError(context, chat_id, new_entry, error_message)
 
         match.sport = new_entry
+        Reminder(update, context, match)
 
     elif field == 'date':
 
@@ -147,9 +150,12 @@ def update_event(update, context):
             raise DateValueError(context, chat_id)
 
         match.date = event_date
+        match.__post_init__()
 
         if match.is_in_the_past():
             raise EventInThePastError(context, chat_id)
+
+        Reminder(update, context, match)
 
     elif field == 'time':
 
@@ -160,9 +166,12 @@ def update_event(update, context):
             raise TimeValueError(context, chat_id)
 
         match.time = event_time
+        match.__post_init__()
 
         if match.is_in_the_past():
             raise EventInThePastError(context, chat_id)
+
+        Reminder(update, context, match)
 
     elif field == 'duration':
 
@@ -270,6 +279,7 @@ def delete_event(update, context):
             text=f'Match {match_id} removed from database'
         )
         logger.info('Match removed from database')
+        Reminder.remove_job(context, match.match_id)
 
     else:
         raise UnauthorizedUserError(context, chat_id, match_id)
