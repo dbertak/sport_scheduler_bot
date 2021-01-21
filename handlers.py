@@ -52,6 +52,7 @@ def show_help(update, context):
              '/join <match id>, to join a match\n'
              '/leave <match id>, to abandon a match\n'
              '/remove <match id>, to cancel a match\n'
+             '/matchinfo <match id>, shows information about a given match\n'
         )
 
 
@@ -66,10 +67,12 @@ def show_sports(update, context):
 
 
 def new_match(update, context):
-    chat_id, user_id = get_message_info(update)
-    parsed_data = context.args 
+    '''Creates a new match and stores it in the database.'''
 
-    if len(parsed_data) != 4: 
+    chat_id, user_id = get_message_info(update)
+    parsed_data = context.args
+
+    if len(parsed_data) != 4:
         raise InputSizeError(context, chat_id, len(parsed_data), 4)
 
     sport, date, time, duration = parsed_data
@@ -112,17 +115,38 @@ def new_match(update, context):
     context.bot.send_message(
         chat_id=chat_id,
         text=f'Match {match_id} has been successfully created,\n'
-             f'{match_id} must be specified when using the commands /update, /join, /leave and /remove as first argument.'
+             f'{match_id} must be specified when using the commands /matchinfo, /update, /join, /leave and /remove as first argument.'
     )
 
     Reminder(update, context, match)
 
 
-def update_event(update, context):
-    chat_id, user_id = get_message_info(update)
-    parsed_data = context.args 
+def get_info(update, context):
+    '''Returns user info about a given match.'''
 
-    if len(parsed_data) != 3: 
+    chat_id, user_id = get_message_info(update)
+    parsed_data = context.args
+    match_id = parsed_data[0]
+
+    if len(parsed_data) != 1:
+        raise InputSizeError(context, chat_id, len(parsed_data), 1)
+
+    _, match, __ = get_match_in_db(context, match_id, chat_id, user_id)
+    match_info = [match.match_id, match.sport, match.date, match.time, match.duration]
+    text = ', '. join(map(str, match_info))
+    context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text=text
+    )
+
+
+def update_event(update, context):
+    '''Allows user to modify some fields of the match.'''
+
+    chat_id, user_id = get_message_info(update)
+    parsed_data = context.args
+
+    if len(parsed_data) != 3:
         raise InputSizeError(context, chat_id, len(parsed_data), 3)
 
     match_id, field, new_entry = parsed_data
@@ -188,8 +212,7 @@ def update_event(update, context):
         context.bot.send_message(
             chat_id=chat_id,
             text='Unrecognized field, it is only possible to update sport type,'
-                 'date/time and duration of the event',
-            parse_mode=ParseMode.MARKDOWN
+                 'date, time and duration of the event'
         )
         raise ValueError(f'Unrecognized field {field}')
 
@@ -206,7 +229,7 @@ def join_event(update, context):
     chat_id, user_id = get_message_info(update)
     parsed_data = context.args 
 
-    if len(parsed_data) != 1: 
+    if len(parsed_data) != 1:
         raise InputSizeError(context, chat_id, len(parsed_data), 1)
 
     match_id = parsed_data[0]
@@ -240,9 +263,9 @@ def leave_event(update, context):
     '''Allows the user the leave an event'''
 
     chat_id, user_id = get_message_info(update)
-    parsed_data = context.args 
+    parsed_data = context.args
 
-    if len(parsed_data) != 1: 
+    if len(parsed_data) != 1:
         raise InputSizeError(context, chat_id, len(parsed_data), 1)
 
     match_id = parsed_data[0]
@@ -271,9 +294,9 @@ def delete_event(update, context):
     '''Allows user to remove an event.'''
 
     chat_id, user_id = get_message_info(update)
-    parsed_data = context.args 
+    parsed_data = context.args
 
-    if len(parsed_data) != 1: 
+    if len(parsed_data) != 1:
         raise InputSizeError(context, chat_id, len(parsed_data), 1)
 
     match_id = parsed_data[0]
