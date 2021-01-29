@@ -2,7 +2,6 @@ from datetime import datetime, timedelta
 
 import logging
 
-from db_manager import get_missing_players_number
 from utils import delete_match
 
 logger = logging.getLogger(__name__)
@@ -23,7 +22,7 @@ class Reminder:
         job = context.job
         time_left = self.match.get_time_to_event()
         time_left_str = str(time_left).split('.')[0]
-        missing_players = get_missing_players_number(self.match.match_id)
+        missing_players = self.match.get_missing_players_number()
         text = f'Match {self.match.match_id} requires {missing_players} additional players.'
         time_left_text = f'Match happening in {time_left_str}.'
 

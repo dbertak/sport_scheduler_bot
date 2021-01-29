@@ -80,21 +80,6 @@ def get_sport_type_info(sport):
     return required_players, maximum_number_players
 
 
-def get_missing_players_number(match_id):
-    '''Returns the number of missing players.'''
-
-    match = find_match(match_id)[1]
-    sport = match.sport
-    required_players = get_sport_type_info(sport)[0]
-    number_of_players = len(match.players_list)
-    missing_players = required_players - number_of_players
-
-    if missing_players < 0:
-        return 0
-
-    return missing_players
-
-
 def generate_key():
     '''Generates primary key for database.'''
 
@@ -197,4 +182,17 @@ class Match:
             return True
 
         return False
+
+    def get_missing_players_number(self):
+        '''Returns the number of missing players.'''
+
+        sport = self.sport
+        required_players = get_sport_type_info(sport)[0]
+        number_of_players = len(self.players_list)
+        missing_players = required_players - number_of_players
+
+        if missing_players < 0:
+            return 0
+
+        return missing_players
 

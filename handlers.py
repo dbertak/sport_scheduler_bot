@@ -132,8 +132,12 @@ def get_info(update, context):
         raise InputSizeError(context, chat_id, len(parsed_data), 1)
 
     _, match, __ = get_match_in_db(context, match_id, chat_id, user_id)
-    match_info = [match.match_id, match.sport, match.date, match.time, match.duration]
-    text = ', '. join(map(str, match_info))
+    event_date = match.date.strftime("%d/%m/%Y")
+    match_info = [match.match_id, match.sport, event_date, match.time, match.duration]
+    infomessage = ', '. join(map(str, match_info))
+    missing_players = match.get_missing_players_number()
+    missing_players_info = f'Missing players: {missing_players}.'
+    text = f'{infomessage}.\n{missing_players_info}'
     context.bot.send_message(
         chat_id=update.effective_chat.id,
         text=text
