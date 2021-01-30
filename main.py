@@ -19,6 +19,7 @@ def main():
     dispatcher.add_handler(CommandHandler('showsports', show_sports))
     dispatcher.add_handler(CommandHandler('newmatch', new_match))
     dispatcher.add_handler(CommandHandler('matchinfo', get_info))
+    dispatcher.add_handler(CommandHandler('matchlist', get_list))
     dispatcher.add_handler(CommandHandler('update', update_event))
     dispatcher.add_handler(CommandHandler('join', join_event))
     dispatcher.add_handler(CommandHandler('leave', leave_event))

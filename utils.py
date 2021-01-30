@@ -10,7 +10,7 @@ def get_message_info(update):
     return chat_id, user_id
 
 
-def get_match_in_db(context, match_id, chat_id, user_id):
+def get_match_in_db(context, match_id, chat_id):
     '''Tries to find a match in the database, raises the proper exceptions in case of failure.'''
 
     try:
@@ -24,6 +24,7 @@ def get_match_in_db(context, match_id, chat_id, user_id):
         raise MatchNotFoundError(context, chat_id, match_id, error_message)
 
     return db, match, index
+
 
 def delete_match(match_id):
     '''Deletes a match in the database (not to be used for the /remove command).'''

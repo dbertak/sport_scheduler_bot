@@ -11,6 +11,7 @@ from db_manager import (
     SPORT_TYPES,
     Match,
     store_in_db,
+    get_matches_from_chat,
     overwrite_line
 )
 from exceptions import (
@@ -40,7 +41,7 @@ def start(update, context):
 def show_help(update, context):
     context.bot.send_message(
         chat_id=update.effective_chat.id,
-        text='*First of all, add this bot to your group chat*\n'
+        text='First of all, add this bot to your group chat\n'
              'Schedule a new match with /newmatch command (prints match id)\n'
              'syntax: /newmatch <sport> <date> <time> <duration>\n'
              'e.g. /newmatch tennis 10/03/2021 17:30 1:30\n'
@@ -53,6 +54,7 @@ def show_help(update, context):
              '/leave <match id>, to abandon a match\n'
              '/remove <match id>, to cancel a match\n'
              '/matchinfo <match id>, shows information about a given match\n'
+             '/matchlist, shows all the matches scheduled in this chat\n'
         )
 
 
@@ -82,19 +84,19 @@ def new_match(update, context):
         raise SportKeyError(context, chat_id, sport, error_message)
 
     try:
-        event_date = datetime.strptime(date, "%d/%m/%Y").date()
+        event_date = datetime.strptime(date, '%d/%m/%Y').date()
 
     except ValueError:
         raise DateValueError(context, chat_id)
 
     try:
-        event_time = datetime.strptime(time, "%H:%M").time()
+        event_time = datetime.strptime(time, '%H:%M').time()
 
     except ValueError:
         raise TimeValueError(context, chat_id)
 
     try:
-        event_duration = datetime.strptime(duration, "%H:%M").time()
+        event_duration = datetime.strptime(duration, '%H:%M').time()
 
     except ValueError:
         raise TimeValueError(context, chat_id)
@@ -131,13 +133,25 @@ def get_info(update, context):
     if len(parsed_data) != 1:
         raise InputSizeError(context, chat_id, len(parsed_data), 1)
 
-    _, match, __ = get_match_in_db(context, match_id, chat_id, user_id)
-    event_date = match.date.strftime("%d/%m/%Y")
-    match_info = [match.match_id, match.sport, event_date, match.time, match.duration]
-    infomessage = ', '. join(map(str, match_info))
-    missing_players = match.get_missing_players_number()
-    missing_players_info = f'Missing players: {missing_players}.'
-    text = f'{infomessage}.\n{missing_players_info}'
+    _, match, __ = get_match_in_db(context, match_id, chat_id)
+    text = match.create_info_message()
+    context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text=text
+    )
+
+
+def get_list(update, context):
+    '''Allows the user to see all the match scheduled in the chat she belongs to.'''
+
+    chat_id, _ = get_message_info(update)
+    matches = get_matches_from_chat(chat_id)
+    text = ''
+
+    for match in matches:
+        match_text = match.create_info_message()
+        text = f'{match_text}\n{text}'
+
     context.bot.send_message(
         chat_id=update.effective_chat.id,
         text=text
@@ -155,7 +169,7 @@ def update_event(update, context):
 
     match_id, field, new_entry = parsed_data
 
-    db_as_list, match, target_index = get_match_in_db(context, match_id, chat_id, user_id)
+    db_as_list, match, target_index = get_match_in_db(context, match_id, chat_id)
 
     if str(user_id) not in match.players_list:
         raise UnauthorizedUserError(context, chat_id, match_id)
@@ -172,7 +186,7 @@ def update_event(update, context):
     elif field == 'date':
 
         try:
-            event_date = datetime.strptime(new_entry, "%d/%m/%Y").date()
+            event_date = datetime.strptime(new_entry, '%d/%m/%Y').date()
 
         except ValueError:
             raise DateValueError(context, chat_id)
@@ -188,7 +202,7 @@ def update_event(update, context):
     elif field == 'time':
 
         try:
-            event_time = datetime.strptime(new_entry, "%H:%M").time()
+            event_time = datetime.strptime(new_entry, '%H:%M').time()
 
         except ValueError:
             raise TimeValueError(context, chat_id)
@@ -204,7 +218,7 @@ def update_event(update, context):
     elif field == 'duration':
 
         try:
-            event_duration = datetime.strptime(new_entry, "%H:%M").time()
+            event_duration = datetime.strptime(new_entry, '%H:%M').time()
 
         except ValueError:
             raise TimeValueError(context, chat_id)
@@ -237,7 +251,7 @@ def join_event(update, context):
         raise InputSizeError(context, chat_id, len(parsed_data), 1)
 
     match_id = parsed_data[0]
-    db, match, index = get_match_in_db(context, match_id, chat_id, user_id)
+    db, match, index = get_match_in_db(context, match_id, chat_id)
 
     if str(user_id) in match.players_list:
         context.bot.send_message(
@@ -273,7 +287,7 @@ def leave_event(update, context):
         raise InputSizeError(context, chat_id, len(parsed_data), 1)
 
     match_id = parsed_data[0]
-    db, match, index = get_match_in_db(context, match_id, chat_id, user_id)
+    db, match, index = get_match_in_db(context, match_id, chat_id)
 
     if str(user_id) in match.players_list:
 
@@ -304,7 +318,7 @@ def delete_event(update, context):
         raise InputSizeError(context, chat_id, len(parsed_data), 1)
 
     match_id = parsed_data[0]
-    db, match, index = get_match_in_db(context, match_id, chat_id, user_id)
+    db, match, index = get_match_in_db(context, match_id, chat_id)
 
     if str(user_id) in match.players_list:
         overwrite_line(db, index)

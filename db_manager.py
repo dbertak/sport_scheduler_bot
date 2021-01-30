@@ -52,6 +52,38 @@ def find_match(match_id):
     raise KeyError(f'{match_id} not found')
 
 
+def get_matches_from_chat(chat_id):
+    '''Returns all the matches created in the same chat.'''
+
+    with open('matches_db.csv', 'r') as db:
+        db_as_text = db.read()
+
+    db_as_list = db_as_text.split('\n')
+
+    matches = []
+
+    for line in db_as_list[:-1]:
+        values = line.split(',')
+
+        if values[POSITIONS['chat_id']] == str(chat_id):
+            match_id, chat_id, sport, date, time, duration = values[:POSITIONS['duration'] + 1]
+            players_list = values[POSITIONS['first_player']:]
+            match = Match(
+                chat_id=chat_id,
+                sport=sport,
+                date=date,
+                time=time,
+                duration=duration,
+                players_list=players_list
+            )
+            match.match_id = match_id
+            matches.append(match)
+
+    matches = tuple(matches)
+
+    return matches
+
+
 def overwrite_line(db_as_list, target_index, match=None):
     '''Overwrites a line of the database with the given new one.'''
 
@@ -83,7 +115,18 @@ def get_sport_type_info(sport):
 def generate_key():
     '''Generates primary key for database.'''
 
-    key = ''.join(random.choices(string.digits, k=4))
+    with open('matches_db.csv', 'r') as db:
+        db_as_text = db.read()
+
+    if not db_as_text:
+        return 1
+
+    db_as_list = db_as_text.split('\n')
+    values = db_as_list[-2].split(',')
+    match_id = int(values[POSITIONS['match_id']])
+
+    key = match_id + 1
+
     return key
 
 
@@ -195,4 +238,18 @@ class Match:
             return 0
 
         return missing_players
+
+    def create_info_message(self):
+        '''Produces a readable message containing the info about the match.'''
+
+        event_date = self.date.strftime('%d/%m/%Y')
+        event_time = self.time.strftime('%H:%M')
+        event_duration = self.duration.strftime('%H:%M')
+        match_info = [self.match_id, self.sport, event_date, event_time, event_duration]
+        infomessage = ', '. join(map(str, match_info))
+        missing_players = self.get_missing_players_number()
+        missing_players_info = f'Missing players: {missing_players}.'
+        text = f'{infomessage}.\n{missing_players_info}'
+
+        return text
 

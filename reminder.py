@@ -105,8 +105,9 @@ class Reminder:
 def get_jobs_name(match_id):
     '''Retrieves the job names to pass to the job scheduler.'''
 
+    job_name = f'match_number_{match_id}'
     last_day_alert_job_name = f'{match_id}_last_day'
     remove_match_job_name = f'{match_id}_remove_match'
 
-    return match_id, last_day_alert_job_name, remove_match_job_name
+    return job_name, last_day_alert_job_name, remove_match_job_name
 
