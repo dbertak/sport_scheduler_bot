@@ -146,11 +146,16 @@ def get_list(update, context):
 
     chat_id, _ = get_message_info(update)
     matches = get_matches_from_chat(chat_id)
-    text = ''
 
-    for match in matches:
-        match_text = match.create_info_message()
-        text = f'{match_text}\n{text}'
+    if matches:
+        text = ''
+
+        for match in matches:
+            match_text = match.create_info_message()
+            text = f'{match_text}\n{text}'
+
+    else:
+        text = 'No matches found, create a new one with /newmatch'
 
     context.bot.send_message(
         chat_id=update.effective_chat.id,
