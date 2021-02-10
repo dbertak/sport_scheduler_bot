@@ -31,7 +31,7 @@ logger = logging.getLogger(__name__)
 def start(update, context):
     context.bot.send_message(
         chat_id=update.effective_chat.id,
-        text='Hi! I am here to help you scheduling sport matches with your friends\n'
+        text='Hi! I am here to help you scheduling sport matches with your friends.\n'
              'Type /help for more information.\n'
              'GitHub: [SportSchedulerBot](https://github.com/dbertak/sport_scheduler_bot)',
         parse_mode=ParseMode.MARKDOWN
@@ -249,6 +249,8 @@ def update_event(update, context):
 
 
 def join_event(update, context):
+    '''Allows users to join existing event.'''
+
     chat_id, user_id = get_message_info(update)
     parsed_data = context.args 
 
@@ -283,7 +285,7 @@ def join_event(update, context):
 
 
 def leave_event(update, context):
-    '''Allows the user the leave an event'''
+    '''Allows the user to leave an event.'''
 
     chat_id, user_id = get_message_info(update)
     parsed_data = context.args

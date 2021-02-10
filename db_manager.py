@@ -23,7 +23,7 @@ POSITIONS = {
 logger = logging.getLogger(__name__)
 
 
-def find_match(match_id):
+def find_match(match_id, modifying_user_chat_id=None):
     '''Searches the database for the given match.'''
 
     with open('matches_db.csv', 'r') as db:
@@ -36,6 +36,10 @@ def find_match(match_id):
 
         if values[POSITIONS['match_id']] == str(match_id):
             chat_id, sport, date, time, duration = values[POSITIONS['chat_id']:POSITIONS['duration'] + 1]
+
+            if modifying_user_chat_id and str(modifying_user_chat_id) != chat_id:
+                raise PermissionError
+
             players_list = values[POSITIONS['first_player']:]
             match = Match(
                 chat_id=chat_id,
@@ -49,7 +53,7 @@ def find_match(match_id):
 
             return db_as_list, match, index
 
-    raise KeyError(f'{match_id} not found')
+    raise KeyError
 
 
 def get_matches_from_chat(chat_id):
