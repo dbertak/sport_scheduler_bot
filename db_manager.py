@@ -34,7 +34,7 @@ def find_match(match_id):
     for index, line in enumerate(db_as_list):
         values = line.split(',')
 
-        if values[POSITIONS['match_id']] == match_id:
+        if values[POSITIONS['match_id']] == str(match_id):
             chat_id, sport, date, time, duration = values[POSITIONS['chat_id']:POSITIONS['duration'] + 1]
             players_list = values[POSITIONS['first_player']:]
             match = Match(
