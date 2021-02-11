@@ -23,8 +23,9 @@ from exceptions import (
     UnauthorizedUserError
 )
 from reminder import Reminder
+from config import CONFIG
 
-
+logging.basicConfig(format=CONFIG['logging']['format'], level=CONFIG['logging']['level'])
 logger = logging.getLogger(__name__)
 
 

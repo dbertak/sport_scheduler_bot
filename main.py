@@ -6,7 +6,7 @@ from handlers import *
 import logging
 
 
-logging.basicConfig(format=CONFIG['logging']['format'], level=logging.INFO)
+logging.basicConfig(format=CONFIG['logging']['format'], level=CONFIG['logging']['level'])
 logger = logging.getLogger(__name__)
 
 

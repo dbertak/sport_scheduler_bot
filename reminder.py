@@ -3,7 +3,9 @@ from datetime import datetime, timedelta
 import logging
 
 from utils import delete_match
+from config import CONFIG
 
+logging.basicConfig(format=CONFIG['logging']['format'], level=CONFIG['logging']['level'])
 logger = logging.getLogger(__name__)
 
 

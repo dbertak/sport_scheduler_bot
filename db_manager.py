@@ -3,10 +3,8 @@ from datetime import datetime, date, time
 from pytz import timezone
 
 import logging
-import random
-import string
 
-from config import SPORT_CONFIG
+from config import CONFIG, SPORT_CONFIG
 
 
 SPORT_TYPES = SPORT_CONFIG['sport_types']
@@ -20,6 +18,7 @@ POSITIONS = {
     'first_player': 6
 }
 
+logging.basicConfig(format=CONFIG['logging']['format'], level=CONFIG['logging']['level'])
 logger = logging.getLogger(__name__)
 
 
