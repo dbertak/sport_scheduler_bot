@@ -1,5 +1,5 @@
 from exceptions import DatabaseNotFoundError, MatchNotFoundError, UnauthorizedUserError
-from db_manager import find_match, overwrite_line
+from db_manager import find_match
 
 
 def get_message_info(update):
@@ -28,11 +28,4 @@ def get_match_in_db(context, match_id, chat_id):
         raise MatchNotFoundError(context, chat_id, match_id, error_message)
 
     return db, match, index
-
-
-def delete_match(match_id):
-    '''Deletes a match in the database (not to be used for the /remove command).'''
-
-    db, _, index = find_match(match_id)
-    overwrite_line(db, index)
 

@@ -42,7 +42,7 @@ def start(update, context):
 def show_help(update, context):
     context.bot.send_message(
         chat_id=update.effective_chat.id,
-        text='First of all, add this bot to your group chat\n'
+        text='First of all, add this bot to your group chat.\n'
              'Schedule a new match with /newmatch command (prints match id)\n'
              'syntax: /newmatch <sport> <date> <time> <duration>\n'
              'e.g. /newmatch tennis 10/03/2021 17:30 1:30\n'
@@ -60,7 +60,7 @@ def show_help(update, context):
 
 
 def show_sports(update, context):
-    '''Prints available sports'''
+    '''Prints available sports.'''
 
     text = ', '.join(SPORT_TYPES.keys())
     context.bot.send_message(
@@ -117,11 +117,11 @@ def new_match(update, context):
     match_id = store_in_db(match)
     context.bot.send_message(
         chat_id=chat_id,
-        text=f'Match {match_id} has been successfully created,\n'
+        text=f'Match {match_id} has been successfully created.\n'
              f'{match_id} must be specified when using the commands /matchinfo, /update, /join, /leave and /remove as first argument.'
     )
 
-    Reminder(update, context, match)
+    Reminder(update, context, match_id)
 
 
 def get_info(update, context):
@@ -187,7 +187,6 @@ def update_event(update, context):
             raise SportKeyError(context, chat_id, new_entry, error_message)
 
         match.sport = new_entry
-        Reminder(update, context, match)
 
     elif field == 'date':
 
@@ -203,8 +202,6 @@ def update_event(update, context):
         if match.is_in_the_past():
             raise EventInThePastError(context, chat_id)
 
-        Reminder(update, context, match)
-
     elif field == 'time':
 
         try:
@@ -218,8 +215,6 @@ def update_event(update, context):
 
         if match.is_in_the_past():
             raise EventInThePastError(context, chat_id)
-
-        Reminder(update, context, match)
 
     elif field == 'duration':
 
