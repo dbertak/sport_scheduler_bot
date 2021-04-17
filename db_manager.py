@@ -249,7 +249,7 @@ class Match:
     def create_info_message(self):
         '''Produces a readable message containing the info about the match.'''
 
-        event_date = self.date.strftime('%d/%m/%Y')
+        event_date = self.date.strftime('%A %d/%m/%Y')
         event_time = self.time.strftime('%H:%M')
         event_duration = self.duration.strftime('%H:%M')
         match_info = [self.match_id, self.sport, event_date, event_time, event_duration]
