@@ -15,6 +15,7 @@ from db_manager import (
     overwrite_line
 )
 from exceptions import (
+    DatabaseNotFoundError,
     SportKeyError,
     DateValueError,
     TimeValueError,
@@ -146,7 +147,12 @@ def get_list(update, context):
     '''Allows the user to see all the match scheduled in the chat she belongs to.'''
 
     chat_id, _ = get_message_info(update)
-    matches = get_matches_from_chat(chat_id)
+
+    try:
+        matches = get_matches_from_chat(chat_id)
+
+    except FileNotFoundError:
+        raise DatabaseNotFoundError(context, chat_id)
 
     if matches:
         text = ''

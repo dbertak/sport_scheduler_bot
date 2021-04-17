@@ -118,8 +118,12 @@ def get_sport_type_info(sport):
 def generate_key():
     '''Generates primary key for database.'''
 
-    with open('matches_db.csv', 'r') as db:
-        db_as_text = db.read()
+    try:
+        with open('matches_db.csv', 'r') as db:
+            db_as_text = db.read()
+
+    except FileNotFoundError:
+        return 1
 
     if not db_as_text:
         return 1
