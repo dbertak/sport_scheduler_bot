@@ -27,6 +27,10 @@
         "smite": {
             "required_players": 1,
             "maximum_number_players": 5 
+        },
+        "chess": {
+            "required_players": 2,
+            "maximum_number_players": 2 
         }
     }
 }
