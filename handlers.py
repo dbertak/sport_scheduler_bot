@@ -93,11 +93,6 @@ def new_match(update, context):
 
     try:
         event_time = datetime.strptime(time, '%H:%M').time()
-
-    except ValueError:
-        raise TimeValueError(context, chat_id)
-
-    try:
         event_duration = datetime.strptime(duration, '%H:%M').time()
 
     except ValueError:
